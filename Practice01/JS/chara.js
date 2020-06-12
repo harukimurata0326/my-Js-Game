@@ -118,7 +118,7 @@ class Character {
     let sin = Math.sin(angle);
     let cos = Math.cos(angle);
     // 自身の vector プロパティに設定する
-    this.setVector.set(cos, sin);
+    this.setVector(cos, sin);
   }
 
   /**
@@ -231,7 +231,7 @@ class OwnCharacter extends Character {
     this.landFrameCount = 0;
     /**
      * 進行中のキャラクターのアニメーション名
-     * @type {string}
+     * @type {string} [animation name = standing] - 初期値は立ち状態の'standing'
      */
     this.animation = 'standing';
     /**
@@ -417,7 +417,7 @@ class OwnCharacter extends Character {
     // jumpBtnCount をリセット、キャラクターのアニメーションを
     // 'walking' に変更する
     if( this.position.y >= (this.groundPosition - this.h) << 5 ) {
-      if( this.animation = 'jumping' ) {
+      if( this.animation == 'jumping' ) {
         // 着地してからのフレーム数を数える
         this.landFrameCount++;
         if( this.landFrameCount > 7 ) {
