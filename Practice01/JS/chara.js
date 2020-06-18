@@ -49,6 +49,8 @@ class Character {
    * @param {number} life - キャラクターのライフ (生存フラグを兼ねる)
    * @param {number} groundPosition - 地面の Y 座標
    * @param {string} imagePath - キャラクター用の画像のパス
+   * @param {number} scx - スクロールによって生じる X 座標における移動量
+   * @param {number} scy - スクロールによって生じる Y 座標における移動量
    */
   constructor (vctx, x, y, w, h, life, groundPosition, imagePath) {
     /**
@@ -96,6 +98,14 @@ class Character {
       this.ready = true;
     }, false);
     this.image.src = imagePath;
+    /**
+     * @type {number}
+     */
+    this.scx = 0;
+    /**
+     * @type {number}
+     */
+    this.scy = 0;
   }
   /**
    * 進行方向を設定する
@@ -135,7 +145,6 @@ class Character {
     this.vctx.drawImage(this.image, sx, sy, this.w, this.h,
       x - offsetX, y,
       this.w, this.h);
-    console.log(x + ':' + y);
   }
 }
 
@@ -537,10 +546,197 @@ class OwnCharacter extends Character {
     }
     // 加速度の分 X・Y 座標を増減させる
     this.position.x += this.accelarationX;
+    if (this.position.x < 0) {
+      this.position.x = 0;
+    }
     // キャラクターの画像を足元の Y 座標を基準に表示する
     this.position.y += this.accelarationY + ( ( previousFrameImgHeight - this.h ) << 5 );
 
+    // スクロール時に操作キャラクターが画面の固定の位置から動かないようにする
+    if ( (this.position.x >> 5) > this.scx + CANVAS_WIDTH / 5 * 2) {
+      this.scx = (this.position.x >> 5) - CANVAS_WIDTH / 5 * 2;
+    }
+    if (this.scx > 0 && (this.position.x >> 5) < this.scx + CANVAS_WIDTH / 5 * 2) {
+      this.scx = (this.position.x >> 5) - CANVAS_WIDTH / 5 * 2;
+    }
+    // キャラクターを描画する位置は、 position の座標から
+    // スクロール量を差し引いたものになる
+    let px = (this.position.x >> 5) - this.scx;
+    let py = (this.position.y >> 5) - this.scy;
     // 自機キャラクターを描画する
-    this.draw(this.sprite, this.position.x >> 5, this.position.y >> 5);
+    this.draw(this.sprite, px, py);
+  }
+}
+
+/**
+ * 背景を流れる光のクラス
+ */
+class bgLight {
+  /**
+   * @constructor
+   * @param {CanvasRenderingContext2D} vctx - 描画などに使用する 2D コンテキスト(仮想画面)
+   * @param {number} size - 光の幅と高さ
+   * @param {number} speed - 光の移動する速さ
+   * @param {string} color - 光の色
+   */
+  constructor (vctx, size, speed, color = '#242833') {
+    /**
+     * @type {CanvasRenderingContext2D}
+     */
+    this.ctx = vctx;
+    /**
+     * 光の大きさ (幅・高さ)
+     * @type {number}
+     */
+    this.size = size;
+    /**
+     * 光の移動速度
+     * @type {number}
+     */
+    this.speed = speed;
+    /**
+     * 光を fill する際の色
+     * @type {string}
+     */
+    this.color = color;
+    /**
+     * 自身の座標
+     * @type {Position}
+     */
+    this.position = null;
+  }
+
+  /**
+   * 背景の光を設定する
+   * @param {number} x - 星を発生させる X 座標
+   * @param {number} y - 星を発生させる Y 座標
+   */
+  set (x, y) {
+    // 引数を基に位置を決める
+    this.position = new Position(x, y);
+  }
+
+  /**
+   * 星を更新する
+   */
+  update () {
+    // 光の色を設定する
+    this.ctx.fillStyle = this.color;
+    // 光の現在位置を速度に応じて動かす
+    this.position.y -= this.speed;
+    // 星の円形を描画する
+    this.ctx.beginPath();
+    this.ctx.arc (
+      this.position.x - this.size / 2,
+      this.position.y - this.size / 2,
+      this.size,
+      0.0,
+      Math.PI * 2.0
+    );
+    this.ctx.closePath();
+    this.ctx.fill();
+    // もし画面上端よりも外に出てしまっていたら下端側に戻す
+    if (this.position.y + this.size < 0) {
+      this.position.y = this.ctx.canvas.height;
+    }
+  }
+}
+
+/**
+ * 背景に映る光源のクラス
+ */
+class bgFlash {
+  /**
+   * @coustructor
+   */
+  constructor (
+      vctx, x0, y0, r0, x1, y1, r1, color1, color2, color3,
+      colorStop1, colorStop2
+    ) {
+    /**
+     * @type {CanvasRenderingContext2D}
+     */
+    this.ctx = vctx;
+    /**
+     * 光源の円形グラデーションの開始円の中心の X 座標
+     * @type {number}
+     */
+    this.x0 = x0;
+    /**
+     * 光源の円形グラデーションの開始円の中心の Y 座標
+     * @type {number}
+     */
+    this.y0 = y0;
+    /**
+     * 光源の円形グラデーションの開始円の半径
+     * @type {number}
+     */
+    this.r0 = r0;
+    /**
+     * 光源の円形グラデーションの終了円の中心の X 座標
+     * @type {number}
+     */
+    this.x1 = x1;
+    /**
+     * 光源の円形グラデーションの終了円の中心の Y 座標
+     * @type {number}
+     */
+    this.y1 = y1;
+    /**
+     * 光源の円形グラデーションの終了円の半径
+     * @type {number}
+     */
+    this.r1 = r1;
+    /**
+     * 光源の円形グラデーションの一つ目の色
+     * @type {string}
+     */
+    this.color1 = color1;
+    /**
+     * 光源の円形グラデーションの二つ目の色
+     * @type {string}
+     */
+    this.color2 = color2;
+    /**
+     * 光源の円形グラデーションの三つ目の色
+     * @type {string}
+     */
+    this.color3 = color3;
+    /**
+     * @type {number}
+     */
+    this.colorStop1 = colorStop1;
+    /**
+     * @type {number}
+     */
+    this.colorStop2 = colorStop2;
+    /**
+     * @type {number}
+     */
+    this.frame = 0;
+  }
+
+  update () {
+    this.ctx.beginPath();
+    // 円形グラデーションの終了円の半径を Math.sin を用いることで、
+    // 経過フレームに応じて最大 120 増減させる
+    let r1 = this.r1 + Math.sin(this.frame / 160) * 120;
+    // 円形グラデーションの一つ目の colorStop の位置を Math.sin を用いることで、
+    // 経過フレームに応じて最大 0.2 増減させる
+    let cs1 = this.colorStop1 + Math.sin(this.frame / 120) * 0.2;
+    // 円形グラデーションの内容を変数に格納する
+    let gradient = this.ctx.createRadialGradient(
+        this.x0, this.y0, this.r0, this.x1, this.y1, r1
+    );
+    gradient.addColorStop(0.0, this.color1);
+    gradient.addColorStop(cs1, this.color2);
+    gradient.addColorStop(this.colorStop2, this.color3);
+    this.ctx.fillStyle = gradient;
+    // 円を描画する
+    this.ctx.arc(this.x0, this.y0, r1, 0.0, 2.0 * Math.PI);
+    this.ctx.closePath();
+    this.ctx.fill();
+    // 更新ごとに frame を増やす
+    this.frame++;
   }
 }
