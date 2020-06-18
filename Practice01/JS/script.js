@@ -52,27 +52,22 @@
    * 自機キャラクターのインスタンス
    * @type {aozora}
    */
-  let aozora = null;
-
+  window.aozora = null;
   /**
-   * canvas の幅
-   * @type {number}
+   * フィールドのインスタンス
+   * @type {field}
    */
-  const CANVAS_WIDTH = 800;
+  let field = null;
   /**
-   * canvas の高さ
-   * @type {number}
+   * 背景の光のインスタンス
+   * @type {bgFlash}
    */
-  const CANVAS_HEIGHT = 600;
+  let bgflash = null;
   /**
-   * モニターの FPS
-   * @type {number}
+   * 流れる光のインスタンスを格納する配列
+   * @type {Array<bgLight>}
    */
-  const GAME_FPS = 1000 / 60;
-  /**
-   * 地面の Y 座標
-   */
-  const GROUND_Y = 500;
+  let backgroundLightArray = [];
 
   /**
    * ページのロードが完了した時に発火する load イベント
@@ -115,6 +110,28 @@
     // 自機キャラクターを初期化する
     aozora = new OwnCharacter(v_ctx, 100, GROUND_Y - 128, 128, 128,
         100, GROUND_Y, '../images/character/sprites_sheets/sprite.png');
+
+    // フィールド画像を初期化する
+    field = new Field(v_ctx, 40, 40, '../images/bg/pseudo-alter/block/sprite.png');
+
+    // 背景の光源を初期化する
+    bgflash = new bgFlash(
+        v_ctx, 100, 100, 16, 100, 100, 300,
+        "#fff", "#051E4E", "#4A5267", 0.3, 1
+    );
+
+    // 流れる光を初期化する
+    for (i = 0; i < BACKGROUND_LIGHT_MAX_COUNT; ++i) {
+      // 星の速度と大きさはランダムと最大値によって決まるようにする
+      let size = 1 + Math.random() * (BACKGROUND_LIGHT_MAX_SIZE - 1);
+      let speed = .4 + Math.random() * (BACKGROUND_LIGHT_MAX_SPEED - .4);
+      // 光のインスタンスを生成する
+      backgroundLightArray[i] = new bgLight(v_ctx, size, speed);
+      // 星の初期位置もランダムに決まるようにする
+      let x = Math.random() * CANVAS_WIDTH;
+      let y = Math.random() * CANVAS_HEIGHT;
+      backgroundLightArray[i].set(x, y);
+    }
   }
 
   /**
@@ -122,12 +139,24 @@
    */
   function render() {
     // 背景の描画を行う
-    v_ctx.fillStyle = "#6af";
+    v_ctx.fillStyle = "#4A5267";
     v_ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+    // 背景の光源の状態を更新する
+    bgflash.update();
+
     // デバッグ情報を表示
     v_ctx.font = "20px 'Impact";
     v_ctx.fillStyle = "#fff";
     v_ctx.fillText("FRAME:"+frameCount, 10, 20);
+
+    // 流れる星の状態を更新する
+    backgroundLightArray.map((v) => {
+      v.update();
+    });
+
+    // フィールドを描画する
+    field.update();
 
     // 自機キャラクターの状態を更新する
     aozora.update();
@@ -201,6 +230,12 @@
       if( e.keyCode == 32 ) {
         keyb.Space = true;
       }
+      if( e.keyCode == 69 ) {
+        keyb.scxUp = true;
+      }
+      if( e.keyCode == 81 ) {
+        keyb.scxDown = true;
+      }
     }, false);
 
     // キーが離され時に呼び出されるイベントリスナーを設定する
@@ -217,6 +252,12 @@
       }
       if( e.keyCode == 32 ) {
         keyb.Space = false;
+      }
+      if( e.keyCode == 69 ) {
+        keyb.scxUp = false;
+      }
+      if( e.keyCode == 81 ) {
+        keyb.scxDown = false;
       }
     }, false);
   }
