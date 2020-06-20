@@ -212,12 +212,12 @@ class OwnCharacter extends Character {
      * 自身のジャンプ力
      * @type {number}
      */
-    this.jumpingPower = 220;
+    this.jumpingPower = 160;
     /**
      * 大ジャンプの時の加速量
      * @type {number}
      */
-    this.BigJumpingPower = 280;
+    this.BigJumpingPower = 220;
     /**
      * Own Character がジャンプ中かどうかを表すフラグ
      * @type {boolean}
@@ -253,6 +253,52 @@ class OwnCharacter extends Character {
      * @type {number}
      */
     this.sprite = 0;
+    this.previousFrameImgHeight = h;
+  }
+
+  /**
+   * 壁の判定
+   */
+  checkWall () {
+    let lx = ((this.position.x + this.accelarationX) >> 5) - this.w / 2;
+    let ly = ((this.position.y + this.accelarationY) >> 5);
+
+    // 右側のチェック
+    if (field.isBlock(lx + this.w - 10, ly + 39) ||
+        field.isBlock(lx + this.w - 10, ly + this.h / 2) ||
+        field.isBlock(lx + this.w - 10, ly + this.h - 39)) {
+      if (this.accelarationX > 0) {
+        this.accelarationX = 0;
+      }
+    } else
+    // 左側のチェック
+    if (field.isBlock(lx + 10, ly + 39) ||
+        field.isBlock(lx + 10, ly + this.h / 2) ||
+        field.isBlock(lx + 10, ly + this.h - 39)) {
+      if (this.accelarationX < 0) {
+        this.accelarationX = 0;
+      }
+    }
+  }
+
+  /**
+   * 天井の判定
+   */
+  checkCeiling () {
+    if (this.accelarationY > 0) {
+      return;
+    }
+    let lx = ((this.position.x + this.accelarationX) >> 5) - this.w / 2;
+    let ly = ((this.position.y + this.accelarationY) >> 5);
+
+    if (field.isBlock(lx + 39, ly) ||
+        field.isBlock(lx + this.w / 2 - 8, ly) ||
+        field.isBlock(lx + this.w / 2 + 8, ly) ||
+        field.isBlock(lx + this.w - 40, ly)) {
+      this.accelarationY = 0;
+      this.position.y -= ( this.previousFrameImgHeight - this.h ) << 5;
+      this.jumpBtnCount = 15;
+    }
   }
 
   /**
@@ -262,20 +308,22 @@ class OwnCharacter extends Character {
     if (this.accelarationY < 0) {
       return;
     }
-    let lx = (this.position.x >> 5) - this.w / 2;
+    let lx = ((this.position.x + this.accelarationX) >> 5) - this.w / 2;
     let ly = ((this.position.y + this.accelarationY) >> 5) + this.h;
 
-    if (field.isBlock(lx + (this.w - 20) / 2, ly) ||
-        field.isBlock(lx + this.w - (this.w - 20) / 2, ly)) {
+    if (field.isBlock(lx + 39, ly) ||
+        field.isBlock(lx + this.w / 2 - 8, ly) ||
+        field.isBlock(lx + this.w / 2 + 8, ly) ||
+        field.isBlock(lx + this.w - 40, ly)) {
       // 床にぶつかるようにする
-      // 着地してから 8f 後にジャンプフラグを false にし、
+      // 着地してから 6f 後にジャンプフラグを false にし、
       // jumpBtnCount をリセット、キャラクターのアニメーションを
       // 'walking' に変更する
       if( this.position.y >= (Math.floor(ly / 40) * 40 - this.h + 4) << 5 ) {
         if( this.animation == 'jumping' ) {
           // 着地してからのフレーム数を数える
           this.landFrameCount++;
-          if( this.landFrameCount > 7 ) {
+          if( this.landFrameCount > 5 ) {
             this.isJumping = false;
             this.jumpBtnCount = 0;
             this.animation = 'walking';
@@ -444,7 +492,7 @@ class OwnCharacter extends Character {
    */
   update () {
     // 前のフレームの this.h を変数に代入する
-    let previousFrameImgHeight = this.h;
+    this.previousFrameImgHeight = this.h;
     // 重力を加味する
     if( this.accelarationY < this.maxGravity ) {
       this.accelarationY += this.gravity;
@@ -561,13 +609,19 @@ class OwnCharacter extends Character {
         break;
     }
 
+    // 壁の判定
+    this.checkWall();
+
+    // 天井の判定
+    this.checkCeiling();
+
     // 加速度の分 X・Y 座標を増減させる
     this.position.x += this.accelarationX;
     if (this.position.x < 0) {
       this.position.x = 0;
     }
     // キャラクターの画像を足元の Y 座標を基準に表示する
-    this.position.y += this.accelarationY + ( ( previousFrameImgHeight - this.h ) << 5 );
+    this.position.y += this.accelarationY + ( ( this.previousFrameImgHeight - this.h ) << 5 );
 
     // スクロール時に操作キャラクターが画面の固定の位置から動かないようにする
     if ( (this.position.x >> 5) > this.scx + CANVAS_WIDTH / 5 * 2) {
