@@ -256,6 +256,41 @@ class OwnCharacter extends Character {
   }
 
   /**
+   * 床の判定
+   */
+  checkFloor() {
+    if (this.accelarationY < 0) {
+      return;
+    }
+    let lx = (this.position.x >> 5) - this.w / 2;
+    let ly = ((this.position.y + this.accelarationY) >> 5) + this.h;
+
+    if (field.isBlock(lx + (this.w - 20) / 2, ly) ||
+        field.isBlock(lx + this.w - (this.w - 20) / 2, ly)) {
+      // 床にぶつかるようにする
+      // 着地してから 8f 後にジャンプフラグを false にし、
+      // jumpBtnCount をリセット、キャラクターのアニメーションを
+      // 'walking' に変更する
+      if( this.position.y >= (Math.floor(ly / 40) * 40 - this.h + 4) << 5 ) {
+        if( this.animation == 'jumping' ) {
+          // 着地してからのフレーム数を数える
+          this.landFrameCount++;
+          if( this.landFrameCount > 7 ) {
+            this.isJumping = false;
+            this.jumpBtnCount = 0;
+            this.animation = 'walking';
+          }
+        }
+        // 床の高さに到達した時に加速を 0 にする
+        this.accelarationY = 0;
+        // 床の高さよりも下に行ってしまった場合に
+        // キャラの Y 座標を床の高さに戻す
+        this.position.y = (Math.floor(ly / 40) * 40 - this.h + 4 ) << 5;
+      }
+    }
+  }
+
+  /**
    * ジャンプボタンを押されたとき
    */
   jump () {
@@ -394,8 +429,9 @@ class OwnCharacter extends Character {
           this.accelarationX = 0;
         }
       }
+      let ly = ((this.position.y + this.accelarationY) >> 5) + this.h;
       if( this.accelarationX == 0 && this.accelarationY == 0
-          && this.position.y == ( this.groundPosition - this.h ) << 5
+          && this.position.y == ( Math.floor(ly / 40) * 40 - this.h + 4 ) << 5
         ) {
         // 加速度が 0 になったとき、立ち状態にする
         this.animation = 'standing';
@@ -421,29 +457,10 @@ class OwnCharacter extends Character {
     if( this.jumpBtnCount ) {
       this.jumpBtnCount++;
     }
-    // 床にぶつかるようにする
-    // 着地してから 8f 後にジャンプフラグを false にし、
-    // jumpBtnCount をリセット、キャラクターのアニメーションを
-    // 'walking' に変更する
-    if( this.position.y >= (this.groundPosition - this.h) << 5 ) {
-      if( this.animation == 'jumping' ) {
-        // 着地してからのフレーム数を数える
-        this.landFrameCount++;
-        if( this.landFrameCount > 7 ) {
-          this.isJumping = false;
-          this.jumpBtnCount = 0;
-          this.animation = 'walking';
-        }
-      }
-      // 床の高さに到達した時に加速を 0 にする
-      this.accelarationY = 0;
-      // 床の高さよりも下に行ってしまった場合に
-      // キャラの Y 座標を床の高さに戻す
-      this.position.y = ( this.groundPosition - this.h ) << 5;
-      if(this.animationCount < 5) {
-        console.log(this.h);
-      }
-    }
+
+    // 床の判定
+    this.checkFloor();
+
     // キーの押下状態を調べて挙動を変える
     if( keyb.Space ) {
 
@@ -497,7 +514,6 @@ class OwnCharacter extends Character {
             this.sprite = 94;
             this.h = 107;
             this.w = 79;
-            console.log('landFrameCount: ' + this.landFrameCount);
           } else if ( this.accelarationY <= 0 ) {
             this.sprite = 90;
             this.h = 175;
@@ -544,6 +560,7 @@ class OwnCharacter extends Character {
       default:
         break;
     }
+
     // 加速度の分 X・Y 座標を増減させる
     this.position.x += this.accelarationX;
     if (this.position.x < 0) {

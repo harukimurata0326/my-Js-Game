@@ -21,17 +21,19 @@ let fieldData = [
 ];
 /**
  * マップの画像データを種類ごとに格納するオブジェクト
+ * ブロックの名称、スプライト番号、タイプ
+ * (上から乗れる・干渉しない・下から通り抜けられる等)を判別する
  * @type {Object}
  */
 let mapImgData = {
-  "0": {name: "pseudo-alter1", w: 40, h: 40, snum: 0},
-  "1": {name: "pseudo-alter2", w: 40, h: 40, snum: 1},
-  "2": {name: "pseudo-alter3", w: 40, h: 40, snum: 2},
-  "3": {name: "pseudo-alter4", w: 40, h: 40, snum: 3},
-  "4": {name: "pseudo-alter5", w: 40, h: 40, snum: 4},
-  "5": {name: "pseudo-alter6", w: 40, h: 40, snum: 5},
-  "6": {name: "pseudo-alter7", w: 40, h: 40, snum: 6},
-  "7": {name: "pseudo-alter8", w: 40, h: 40, snum: 7},
+  "0": {name: "pseudo-alter1", snum: 0, type: 'intervention'},
+  "1": {name: "pseudo-alter2", snum: 1, type: 'intervention'},
+  "2": {name: "pseudo-alter3", snum: 2, type: 'intervention'},
+  "3": {name: "pseudo-alter4", snum: 3, type: 'intervention'},
+  "4": {name: "pseudo-alter5", snum: 4, type: 'intervention'},
+  "5": {name: "pseudo-alter6", snum: 5, type: 'intervention'},
+  "6": {name: "pseudo-alter7", snum: 6, type: 'intervention'},
+  "7": {name: "pseudo-alter8", snum: 7, type: 'intervention'},
 };
 
 /**
@@ -81,6 +83,17 @@ class Field {
      * @type {number}
      */
     this.scy = 0;
+  }
+
+  // ブロックかどうかを返す
+  isBlock (x, y) {
+    let sx = Math.floor((x / 40));
+    let sy = Math.floor((y / 40));
+    let bl = fieldData[sy * FIELD_WIDTH_BLOCK + sx];
+    if (bl < 0 || mapImgData[bl]['type'] == 'nonITV') {
+      return false;
+    }
+    return true;
   }
 
   // 更新処理
