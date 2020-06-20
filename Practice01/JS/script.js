@@ -57,7 +57,7 @@
    * フィールドのインスタンス
    * @type {field}
    */
-  let field = null;
+  window.field = null;
   /**
    * 背景の光のインスタンス
    * @type {bgFlash}
