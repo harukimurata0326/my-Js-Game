@@ -296,8 +296,8 @@ class OwnCharacter extends Character {
         field.isBlock(lx + this.w / 2 + 8, ly) ||
         field.isBlock(lx + this.w - 40, ly)) {
       this.accelarationY = 0;
-      this.position.y -= ( this.previousFrameImgHeight - this.h ) << 5;
       this.jumpBtnCount = 15;
+      this.position.y = ((Math.floor(ly / 40) + 1) * 40) << 5;
     }
   }
 
@@ -612,9 +612,6 @@ class OwnCharacter extends Character {
     // 壁の判定
     this.checkWall();
 
-    // 天井の判定
-    this.checkCeiling();
-
     // 加速度の分 X・Y 座標を増減させる
     this.position.x += this.accelarationX;
     if (this.position.x < 0) {
@@ -622,6 +619,9 @@ class OwnCharacter extends Character {
     }
     // キャラクターの画像を足元の Y 座標を基準に表示する
     this.position.y += this.accelarationY + ( ( this.previousFrameImgHeight - this.h ) << 5 );
+
+    // 天井の判定
+    this.checkCeiling();
 
     // スクロール時に操作キャラクターが画面の固定の位置から動かないようにする
     if ( (this.position.x >> 5) > this.scx + CANVAS_WIDTH / 5 * 2) {

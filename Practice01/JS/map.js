@@ -94,7 +94,6 @@ class Field {
     if (!(bl + 1)) {
       return false;
     }
-    console.log(bl);
     return true;
   }
 
